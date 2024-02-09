@@ -1,32 +1,7 @@
-pub mod versioned_bincode_serializer;
+pub mod binary_serializer;
+pub mod bincode_serializer;
+pub mod error;
+pub mod version;
 
-use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::result::Result;
-pub trait BinarySerializer<const VERSION: u32> {
-    type Error: Error;
-
-    // TODO: `Versioned` trait
-
-    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>, Self::Error>
-    where
-        T: Serialize; // + Versioned
-
-    fn deserialize<'a, T>(bytes: &'a [u8]) -> Result<T, Self::Error>
-    where
-        T: Deserialize<'a>; // + Versioned
-
-    fn serialize_oneoff<T: ?Sized>(value: &T) -> Result<Vec<u8>, Self::Error>
-    where
-        T: Serialize; // + Versioned;
-
-    fn deserialize_oneoff<'a, T>(bytes: &'a [u8]) -> Result<T, Self::Error>
-    where
-        T: Deserialize<'a>; // + Versioned;
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn versioned_call() {}
-}
+pub type BinarySerializer<const MAJOR: u16, const MINOR: u16> =
+    bincode_serializer::BincodeSerializer<MAJOR, MINOR>;
