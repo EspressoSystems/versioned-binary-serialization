@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use displaydoc::Display;
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +18,10 @@ impl Version {
         ver
     }
 
-    pub fn deserialize(bytes: &[u8]) -> Result<(Self, &[u8]), std::array::TryFromSliceError> {
+    pub fn deserialize(bytes: &[u8]) -> Result<(Self, &[u8]), anyhow::Error> {
+        if bytes.len() < 4 {
+            return Err(anyhow!("deserializing from a buffer too small to contain a version. Minimum size is 4 bytes, got {}", bytes.len()));
+        }
         let (ver_major, rest) = bytes.split_at(std::mem::size_of::<u16>());
         let (ver_minor, rest) = rest.split_at(std::mem::size_of::<u16>());
 

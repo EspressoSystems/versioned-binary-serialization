@@ -1,55 +1,50 @@
-use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
+use std::io::Write;
 
-use crate::error::{ExternSerializerSnafu, VersionHeaderSnafu};
+use serde::{Deserialize, Serialize};
+
 use crate::{binary_serializer::BinarySerializer, version::Version};
+use anyhow::{anyhow, Result};
 
 pub struct BincodeSerializer<const VER_MAJOR: u16, const VER_MINOR: u16>;
 
 impl<const VER_MAJOR: u16, const VER_MINOR: u16> BinarySerializer<VER_MAJOR, VER_MINOR>
     for BincodeSerializer<VER_MAJOR, VER_MINOR>
 {
-    type Error = crate::error::Error<bincode::Error>;
-    type NativeError = bincode::Error;
-
-    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>, Self::Error>
+    fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
     where
         T: Serialize,
     {
-        bincode::serialize(value).context(ExternSerializerSnafu)
+        Ok(bincode::serialize(value)?)
     }
 
-    fn deserialize<'a, T>(bytes: &'a [u8]) -> Result<T, Self::Error>
+    fn deserialize_no_version<'a, T>(bytes: &'a [u8]) -> Result<T>
     where
         T: Deserialize<'a>,
     {
-        bincode::deserialize(bytes).context(ExternSerializerSnafu)
+        Ok(bincode::deserialize(bytes)?)
     }
 
-    fn serialize_oneoff<T: ?Sized>(value: &T) -> Result<Vec<u8>, Self::Error>
+    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>>
     where
         T: Serialize,
     {
-        bincode::serialize(value)
-            .map(|mut vec| {
-                let mut ver = Self::version().serialize();
-                ver.append(&mut vec);
-                ver
-            })
-            .context(ExternSerializerSnafu)
+        let mut vec = Self::version().serialize();
+        bincode::serialize_into(vec.by_ref(), value)?;
+        Ok(vec)
     }
 
-    fn deserialize_oneoff<'a, T>(bytes: &'a [u8]) -> Result<T, Self::Error>
+    fn deserialize<'a, T>(bytes: &'a [u8]) -> Result<T>
     where
         T: Deserialize<'a>,
     {
-        let (ver, rest) = Version::deserialize(bytes).context(VersionHeaderSnafu)?;
+        let (ver, rest) = Version::deserialize(bytes)?;
         if ver.major != VER_MAJOR || ver.minor != VER_MINOR {
-            return Err(Self::Error::VersionMismatch {
-                version: ver,
-                wanted: Self::version(),
-            });
+            return Err(anyhow!(
+                "Version Mismatch! Expected {}, got {}",
+                ver,
+                Self::version()
+            ));
         }
-        bincode::deserialize(rest).context(ExternSerializerSnafu)
+        Ok(bincode::deserialize(rest)?)
     }
 }
