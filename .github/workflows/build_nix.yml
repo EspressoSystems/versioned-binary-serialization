@@ -9,16 +9,15 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
   nix:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Configure Git
-        run: |
-          git config --global url."https://ancient123:${{ secrets.ORG_GITHUB_PAT }}@github.com/".insteadOf git://github.com/
-          git config --global url."https://ancient123:${{ secrets.ORG_GITHUB_PAT }}@github.com/".insteadOf ssh://git@github.com/
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
