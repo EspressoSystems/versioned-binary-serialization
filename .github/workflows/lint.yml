@@ -1,0 +1,46 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+  pull_request:
+    branches:
+      - main
+      - release-*
+  workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Lint with many combinations of feature flags
+        features:
+          # No optional features
+          - ''
+    env:
+        RUST_LOG: info
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout Repository
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        name: Enable Rust Caching
+
+      - uses: actions-rs/clippy-check@v1
+        name: Clippy
+        with:
+          token: ${{ github.token }}
+          args: --workspace --no-default-features --features "${{ matrix.features }}" -- -D warnings

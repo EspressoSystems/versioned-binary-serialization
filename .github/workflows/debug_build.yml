@@ -1,0 +1,33 @@
+name: Debug Build
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+        RUST_LOG: info
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/checkout@v4
+        name: Checkout Repository
+
+      - uses: Swatinem/rust-cache@v2
+        name: Enable Rust Caching
+
+      - name: Build
+        run: |
+          cargo build --workspace --all-features
+
+      - name: Test
+        run: |
+          cargo test --workspace --all-features --no-run
+          cargo test --workspace --all-features --verbose -- --test-threads 2
+        timeout-minutes: 60
