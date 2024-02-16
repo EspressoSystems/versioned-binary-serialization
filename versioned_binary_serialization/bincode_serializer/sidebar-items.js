@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["BincodeSerializer","VersionChecker","VersionedBincodeSerializer"],"trait":["VersionedBinarySerializer"]};
