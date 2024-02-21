@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["binary_serializer","bincode_serializer","version","versioned"],"type":["Serializer"]};
+window.SIDEBAR_ITEMS = {"mod":["binary_serializer","bincode_serializer","version","versioned"]};
