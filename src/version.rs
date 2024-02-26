@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use displaydoc::Display;
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
 /// Type for protocol version number
