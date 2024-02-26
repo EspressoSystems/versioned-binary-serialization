@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use displaydoc::Display;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
 /// Type for protocol version number
 pub struct Version {
     /// major version number
@@ -32,3 +32,5 @@ impl Version {
         Ok((ver, rest))
     }
 }
+
+pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
