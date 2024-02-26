@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Version"]};
+window.SIDEBAR_ITEMS = {"struct":["StaticVersion","Version"]};

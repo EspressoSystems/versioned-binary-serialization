@@ -33,11 +33,11 @@
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>displaydoc::Display;
-<span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
+<span class="attr">#[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
 </span><span class="doccomment">/// Type for protocol version number
 </span><span class="kw">pub struct </span>Version {
     <span class="doccomment">/// major version number
@@ -67,4 +67,6 @@
         <span class="prelude-val">Ok</span>((ver, rest))
     }
 }
+
+<span class="kw">pub struct </span>StaticVersion&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt;;
 </code></pre></div></section></main></body></html>
