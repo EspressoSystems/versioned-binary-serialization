@@ -50,6 +50,7 @@
 <a href="#49" id="49">49</a>
 <a href="#50" id="50">50</a>
 <a href="#51" id="51">51</a>
+<a href="#52" id="52">52</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>core::fmt::Debug;
 <span class="kw">use </span>displaydoc::Display;
@@ -86,7 +87,8 @@
     }
 }
 
-<span class="kw">pub struct </span>StaticVersion&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt;;
+<span class="attr">#[derive(Clone, Copy, Display)]
+</span><span class="kw">pub struct </span>StaticVersion&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt;;
 
 <span class="kw">impl</span>&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt; StaticVersion&lt;MAJOR, MINOR&gt; {
     <span class="kw">pub const </span>MAJOR: u16 = MAJOR;
