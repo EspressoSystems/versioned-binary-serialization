@@ -34,6 +34,7 @@ impl Version {
     }
 }
 
+#[derive(Clone, Copy, Display)]
 pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
 
 impl<const MAJOR: u16, const MINOR: u16> StaticVersion<MAJOR, MINOR> {
