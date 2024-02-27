@@ -34,10 +34,12 @@
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>displaydoc::Display;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="attr">#[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
+<span class="attr">#[derive(Clone, Copy, Debug, Deserialize, Display, Eq, Hash, PartialEq, Serialize)]
 </span><span class="doccomment">/// Type for protocol version number
 </span><span class="kw">pub struct </span>Version {
     <span class="doccomment">/// major version number
