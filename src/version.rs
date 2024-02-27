@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use core::fmt::Debug;
 use displaydoc::Display;
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
@@ -33,3 +34,17 @@ impl Version {
 }
 
 pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
+
+impl<const MAJOR: u16, const MINOR: u16> StaticVersion<MAJOR, MINOR> {
+    pub const MAJOR: u16 = MAJOR;
+    pub const MINOR: u16 = MINOR;
+}
+
+impl<const MAJOR: u16, const MINOR: u16> Debug for StaticVersion<MAJOR, MINOR> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StaticVersion<MAJOR, MINOR>")
+            .field("MAJOR", &Self::MAJOR)
+            .field("MINOR", &Self::MINOR)
+            .finish()
+    }
+}
