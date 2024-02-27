@@ -1,7 +1,8 @@
 use anyhow::anyhow;
 use displaydoc::Display;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Display, PartialEq, Hash, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Display, Eq, Hash, PartialEq, Serialize)]
 /// Type for protocol version number
 pub struct Version {
     /// major version number
