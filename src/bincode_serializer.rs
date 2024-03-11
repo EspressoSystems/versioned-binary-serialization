@@ -1,15 +1,17 @@
-use std::io::Write;
+use std::{io::Write, marker::PhantomData};
 
-use crate::{binary_serializer::BinarySerializer, version::Version, versioned::Versioned};
+use crate::{
+    binary_serializer::BinarySerializer,
+    version::{StaticVersionType, Version},
+    versioned::Versioned,
+};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 
-pub struct BincodeSerializer<const VER_MAJOR: u16, const VER_MINOR: u16>;
-impl<const VER_MAJOR: u16, const VER_MINOR: u16> BinarySerializer
-    for BincodeSerializer<VER_MAJOR, VER_MINOR>
-{
-    const MAJOR: u16 = VER_MAJOR;
-    const MINOR: u16 = VER_MINOR;
+pub struct BincodeSerializer<VER: StaticVersionType>(PhantomData<VER>);
+impl<VER: StaticVersionType> BinarySerializer for BincodeSerializer<VER> {
+    const MAJOR: u16 = VER::MAJOR;
+    const MINOR: u16 = VER::MINOR;
     fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
     where
         T: Serialize,
@@ -38,7 +40,7 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> BinarySerializer
         T: Deserialize<'a>,
     {
         let (ver, rest) = Version::deserialize(bytes)?;
-        if ver.major != VER_MAJOR || ver.minor != VER_MINOR {
+        if ver.major != VER::MAJOR || ver.minor != VER::MINOR {
             return Err(anyhow!(
                 "Version Mismatch! Expected {}, got {}",
                 ver,
@@ -50,16 +52,15 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> BinarySerializer
 }
 
 // Testing; will use to replace BincodeSerializer after applying `Versioned` to existing serialized types
-pub struct VersionChecker<const VER_MAJOR: u16, const VER_MINOR: u16, TYPE: ?Sized + Versioned> {
-    _phantom: std::marker::PhantomData<TYPE>,
+pub struct VersionChecker<VER: StaticVersionType, TYPE: ?Sized + Versioned> {
+    _phantom_ver: std::marker::PhantomData<VER>,
+    _phantom_type: std::marker::PhantomData<TYPE>,
 }
-impl<const VER_MAJOR: u16, const VER_MINOR: u16, TYPE: ?Sized + Versioned>
-    VersionChecker<VER_MAJOR, VER_MINOR, TYPE>
-{
-    pub const VERSION_MISMATCH: () = if VER_MAJOR < TYPE::MIN_MAJOR
-        || VER_MAJOR > TYPE::MAX_MAJOR
-        || (VER_MAJOR == TYPE::MIN_MAJOR && VER_MINOR < TYPE::MIN_MINOR)
-        || (VER_MAJOR == TYPE::MAX_MAJOR && VER_MINOR > TYPE::MAX_MINOR)
+impl<VER: StaticVersionType, TYPE: ?Sized + Versioned> VersionChecker<VER, TYPE> {
+    pub const VERSION_MISMATCH: () = if VER::MAJOR < TYPE::MIN_MAJOR
+        || VER::MAJOR > TYPE::MAX_MAJOR
+        || (VER::MAJOR == TYPE::MIN_MAJOR && VER::MINOR < TYPE::MIN_MINOR)
+        || (VER::MAJOR == TYPE::MAX_MAJOR && VER::MINOR > TYPE::MAX_MINOR)
     {
         panic!("unsupported type for version")
     };
@@ -68,6 +69,7 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16, TYPE: ?Sized + Versioned>
 pub trait VersionedBinarySerializer {
     const MAJOR: u16;
     const MINOR: u16;
+    type StaticVersion: StaticVersionType;
 
     fn version() -> Version {
         Version {
@@ -95,19 +97,30 @@ pub trait VersionedBinarySerializer {
         T: Deserialize<'a> + Versioned;
 }
 
-pub struct VersionedBincodeSerializer<const VER_MAJOR: u16, const VER_MINOR: u16>;
-impl<const VER_MAJOR: u16, const VER_MINOR: u16> VersionedBinarySerializer
-    for VersionedBincodeSerializer<VER_MAJOR, VER_MINOR>
-{
-    const MAJOR: u16 = VER_MAJOR;
-    const MINOR: u16 = VER_MINOR;
+pub trait VersionType {
+    const MAJOR: u16;
+    const MINOR: u16;
+
+    fn version() -> Version {
+        Version {
+            major: Self::MAJOR,
+            minor: Self::MINOR,
+        }
+    }
+}
+
+pub struct VersionedBincodeSerializer<VER: StaticVersionType>(PhantomData<VER>);
+impl<VER: StaticVersionType> VersionedBinarySerializer for VersionedBincodeSerializer<VER> {
+    const MAJOR: u16 = VER::MAJOR;
+    const MINOR: u16 = VER::MINOR;
+    type StaticVersion = VER;
 
     fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
     where
         T: Serialize + Versioned,
     {
         #[allow(clippy::let_unit_value)]
-        let _ = VersionChecker::<VER_MAJOR, VER_MINOR, T>::VERSION_MISMATCH;
+        let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 
         Ok(bincode::serialize(value)?)
     }
@@ -117,7 +130,7 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> VersionedBinarySerializer
         T: Deserialize<'a> + Versioned,
     {
         #[allow(clippy::let_unit_value)]
-        let _ = VersionChecker::<VER_MAJOR, VER_MINOR, T>::VERSION_MISMATCH;
+        let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 
         Ok(bincode::deserialize(bytes)?)
     }
@@ -127,7 +140,7 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> VersionedBinarySerializer
         T: Serialize + Versioned,
     {
         #[allow(clippy::let_unit_value)]
-        let _ = VersionChecker::<VER_MAJOR, VER_MINOR, T>::VERSION_MISMATCH;
+        let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 
         let mut vec = Self::version().serialize();
         bincode::serialize_into(vec.by_ref(), value)?;
@@ -139,10 +152,10 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> VersionedBinarySerializer
         T: Deserialize<'a> + Versioned,
     {
         #[allow(clippy::let_unit_value)]
-        let _ = VersionChecker::<VER_MAJOR, VER_MINOR, T>::VERSION_MISMATCH;
+        let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 
         let (ver, rest) = Version::deserialize(bytes)?;
-        if ver.major != VER_MAJOR || ver.minor != VER_MINOR {
+        if ver.major != VER::MAJOR || ver.minor != VER::MINOR {
             return Err(anyhow!(
                 "Version Mismatch! Expected {}, got {}",
                 ver,
@@ -157,17 +170,19 @@ impl<const VER_MAJOR: u16, const VER_MINOR: u16> VersionedBinarySerializer
 mod test {
     use serde::{Deserialize, Serialize};
 
-    use crate::{binary_serializer::BinarySerializer, version::Version};
+    use crate::{
+        binary_serializer::BinarySerializer,
+        version::{StaticVersion, Version},
+        versioned::Versioned,
+    };
 
     use super::{BincodeSerializer, VersionedBinarySerializer, VersionedBincodeSerializer};
 
     mod version_0_1 {
-        use crate::versioned::Versioned;
-
         use super::*;
 
-        pub type Serializer = BincodeSerializer<0u16, 1u16>;
-        pub type VSerializer = VersionedBincodeSerializer<0u16, 1u16>;
+        pub type Serializer = BincodeSerializer<StaticVersion<0u16, 1u16>>;
+        pub type VSerializer = VersionedBincodeSerializer<StaticVersion<0u16, 1u16>>;
 
         #[derive(Serialize, Deserialize)]
         pub struct Thing {
@@ -187,19 +202,17 @@ mod test {
     mod version_0_2 {
         use super::*;
 
-        pub type Serializer = BincodeSerializer<0u16, 2u16>;
-        pub type VSerializer = VersionedBincodeSerializer<0u16, 2u16>;
+        pub type Serializer = BincodeSerializer<StaticVersion<0u16, 2u16>>;
+        pub type VSerializer = VersionedBincodeSerializer<StaticVersion<0u16, 2u16>>;
 
         pub type Thing = version_0_1::Thing;
     }
 
     mod version_0_3 {
-        use crate::versioned::Versioned;
-
         use super::*;
 
-        pub type Serializer = BincodeSerializer<0u16, 3u16>;
-        pub type VSerializer = VersionedBincodeSerializer<0u16, 3u16>;
+        pub type Serializer = BincodeSerializer<StaticVersion<0u16, 3u16>>;
+        pub type VSerializer = VersionedBincodeSerializer<StaticVersion<0u16, 3u16>>;
 
         #[derive(Serialize, Deserialize)]
         pub struct Thing {

@@ -34,12 +34,17 @@ impl Version {
     }
 }
 
+pub trait StaticVersionType: private::Sealed {
+    const MAJOR: u16;
+    const MINOR: u16;
+}
+
 #[derive(Clone, Copy, Display)]
 pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
 
-impl<const MAJOR: u16, const MINOR: u16> StaticVersion<MAJOR, MINOR> {
-    pub const MAJOR: u16 = MAJOR;
-    pub const MINOR: u16 = MINOR;
+impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJOR, MINOR> {
+    const MAJOR: u16 = MAJOR;
+    const MINOR: u16 = MINOR;
 }
 
 impl<const MAJOR: u16, const MINOR: u16> Debug for StaticVersion<MAJOR, MINOR> {
@@ -49,4 +54,11 @@ impl<const MAJOR: u16, const MINOR: u16> Debug for StaticVersion<MAJOR, MINOR> {
             .field("MINOR", &Self::MINOR)
             .finish()
     }
+}
+
+mod private {
+    pub trait Sealed {}
+
+    // Implement for those same types, but no others.
+    impl<const MAJOR: u16, const MINOR: u16> Sealed for super::StaticVersion<MAJOR, MINOR> {}
 }
