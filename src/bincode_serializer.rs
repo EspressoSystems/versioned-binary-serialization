@@ -97,18 +97,6 @@ pub trait VersionedBinarySerializer {
         T: Deserialize<'a> + Versioned;
 }
 
-pub trait VersionType {
-    const MAJOR: u16;
-    const MINOR: u16;
-
-    fn version() -> Version {
-        Version {
-            major: Self::MAJOR,
-            minor: Self::MINOR,
-        }
-    }
-}
-
 pub struct VersionedBincodeSerializer<VER: StaticVersionType>(PhantomData<VER>);
 impl<VER: StaticVersionType> VersionedBinarySerializer for VersionedBincodeSerializer<VER> {
     const MAJOR: u16 = VER::MAJOR;

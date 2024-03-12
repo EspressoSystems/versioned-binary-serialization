@@ -34,9 +34,16 @@ impl Version {
     }
 }
 
-pub trait StaticVersionType: private::Sealed {
+pub trait StaticVersionType: Clone + Copy + Debug + private::Sealed {
     const MAJOR: u16;
     const MINOR: u16;
+
+    fn version() -> Version {
+        Version {
+            major: Self::MAJOR,
+            minor: Self::MINOR,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Display)]
@@ -45,6 +52,13 @@ pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
 impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJOR, MINOR> {
     const MAJOR: u16 = MAJOR;
     const MINOR: u16 = MINOR;
+
+    fn version() -> Version {
+        Version {
+            major: Self::MAJOR,
+            minor: Self::MINOR,
+        }
+    }
 }
 
 impl<const MAJOR: u16, const MINOR: u16> Debug for StaticVersion<MAJOR, MINOR> {
