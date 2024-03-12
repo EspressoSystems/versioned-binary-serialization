@@ -268,18 +268,21 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::io::Write;
+<a href="#270" id="270">270</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::{io::Write, marker::PhantomData};
 
-<span class="kw">use crate</span>::{binary_serializer::BinarySerializer, version::Version, versioned::Versioned};
+<span class="kw">use crate</span>::{
+    binary_serializer::BinarySerializer,
+    version::{StaticVersionType, Version},
+    versioned::Versioned,
+};
 <span class="kw">use </span>anyhow::{anyhow, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="kw">pub struct </span>BincodeSerializer&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16&gt;;
-<span class="kw">impl</span>&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16&gt; BinarySerializer
-    <span class="kw">for </span>BincodeSerializer&lt;VER_MAJOR, VER_MINOR&gt;
-{
-    <span class="kw">const </span>MAJOR: u16 = VER_MAJOR;
-    <span class="kw">const </span>MINOR: u16 = VER_MINOR;
+<span class="kw">pub struct </span>BincodeSerializer&lt;VER: StaticVersionType&gt;(PhantomData&lt;VER&gt;);
+<span class="kw">impl</span>&lt;VER: StaticVersionType&gt; BinarySerializer <span class="kw">for </span>BincodeSerializer&lt;VER&gt; {
+    <span class="kw">const </span>MAJOR: u16 = VER::MAJOR;
+    <span class="kw">const </span>MINOR: u16 = VER::MINOR;
     <span class="kw">fn </span>serialize_no_version&lt;T: <span class="question-mark">?</span>Sized&gt;(value: <span class="kw-2">&amp;</span>T) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt;
     <span class="kw">where
         </span>T: Serialize,
@@ -308,7 +311,7 @@
         </span>T: Deserialize&lt;<span class="lifetime">'a</span>&gt;,
     {
         <span class="kw">let </span>(ver, rest) = Version::deserialize(bytes)<span class="question-mark">?</span>;
-        <span class="kw">if </span>ver.major != VER_MAJOR || ver.minor != VER_MINOR {
+        <span class="kw">if </span>ver.major != VER::MAJOR || ver.minor != VER::MINOR {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
                 <span class="string">"Version Mismatch! Expected {}, got {}"</span>,
                 ver,
@@ -320,16 +323,15 @@
 }
 
 <span class="comment">// Testing; will use to replace BincodeSerializer after applying `Versioned` to existing serialized types
-</span><span class="kw">pub struct </span>VersionChecker&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16, TYPE: <span class="question-mark">?</span>Sized + Versioned&gt; {
-    _phantom: std::marker::PhantomData&lt;TYPE&gt;,
+</span><span class="kw">pub struct </span>VersionChecker&lt;VER: StaticVersionType, TYPE: <span class="question-mark">?</span>Sized + Versioned&gt; {
+    _phantom_ver: std::marker::PhantomData&lt;VER&gt;,
+    _phantom_type: std::marker::PhantomData&lt;TYPE&gt;,
 }
-<span class="kw">impl</span>&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16, TYPE: <span class="question-mark">?</span>Sized + Versioned&gt;
-    VersionChecker&lt;VER_MAJOR, VER_MINOR, TYPE&gt;
-{
-    <span class="kw">pub const </span>VERSION_MISMATCH: () = <span class="kw">if </span>VER_MAJOR &lt; TYPE::MIN_MAJOR
-        || VER_MAJOR &gt; TYPE::MAX_MAJOR
-        || (VER_MAJOR == TYPE::MIN_MAJOR &amp;&amp; VER_MINOR &lt; TYPE::MIN_MINOR)
-        || (VER_MAJOR == TYPE::MAX_MAJOR &amp;&amp; VER_MINOR &gt; TYPE::MAX_MINOR)
+<span class="kw">impl</span>&lt;VER: StaticVersionType, TYPE: <span class="question-mark">?</span>Sized + Versioned&gt; VersionChecker&lt;VER, TYPE&gt; {
+    <span class="kw">pub const </span>VERSION_MISMATCH: () = <span class="kw">if </span>VER::MAJOR &lt; TYPE::MIN_MAJOR
+        || VER::MAJOR &gt; TYPE::MAX_MAJOR
+        || (VER::MAJOR == TYPE::MIN_MAJOR &amp;&amp; VER::MINOR &lt; TYPE::MIN_MINOR)
+        || (VER::MAJOR == TYPE::MAX_MAJOR &amp;&amp; VER::MINOR &gt; TYPE::MAX_MINOR)
     {
         <span class="macro">panic!</span>(<span class="string">"unsupported type for version"</span>)
     };
@@ -338,6 +340,7 @@
 <span class="kw">pub trait </span>VersionedBinarySerializer {
     <span class="kw">const </span>MAJOR: u16;
     <span class="kw">const </span>MINOR: u16;
+    <span class="kw">type </span>StaticVersion: StaticVersionType;
 
     <span class="kw">fn </span>version() -&gt; Version {
         Version {
@@ -365,19 +368,18 @@
         </span>T: Deserialize&lt;<span class="lifetime">'a</span>&gt; + Versioned;
 }
 
-<span class="kw">pub struct </span>VersionedBincodeSerializer&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16&gt;;
-<span class="kw">impl</span>&lt;<span class="kw">const </span>VER_MAJOR: u16, <span class="kw">const </span>VER_MINOR: u16&gt; VersionedBinarySerializer
-    <span class="kw">for </span>VersionedBincodeSerializer&lt;VER_MAJOR, VER_MINOR&gt;
-{
-    <span class="kw">const </span>MAJOR: u16 = VER_MAJOR;
-    <span class="kw">const </span>MINOR: u16 = VER_MINOR;
+<span class="kw">pub struct </span>VersionedBincodeSerializer&lt;VER: StaticVersionType&gt;(PhantomData&lt;VER&gt;);
+<span class="kw">impl</span>&lt;VER: StaticVersionType&gt; VersionedBinarySerializer <span class="kw">for </span>VersionedBincodeSerializer&lt;VER&gt; {
+    <span class="kw">const </span>MAJOR: u16 = VER::MAJOR;
+    <span class="kw">const </span>MINOR: u16 = VER::MINOR;
+    <span class="kw">type </span>StaticVersion = VER;
 
     <span class="kw">fn </span>serialize_no_version&lt;T: <span class="question-mark">?</span>Sized&gt;(value: <span class="kw-2">&amp;</span>T) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt;
     <span class="kw">where
         </span>T: Serialize + Versioned,
     {
         <span class="attr">#[allow(clippy::let_unit_value)]
-        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER_MAJOR, VER_MINOR, T&gt;::VERSION_MISMATCH;
+        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER, T&gt;::VERSION_MISMATCH;
 
         <span class="prelude-val">Ok</span>(bincode::serialize(value)<span class="question-mark">?</span>)
     }
@@ -387,7 +389,7 @@
         </span>T: Deserialize&lt;<span class="lifetime">'a</span>&gt; + Versioned,
     {
         <span class="attr">#[allow(clippy::let_unit_value)]
-        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER_MAJOR, VER_MINOR, T&gt;::VERSION_MISMATCH;
+        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER, T&gt;::VERSION_MISMATCH;
 
         <span class="prelude-val">Ok</span>(bincode::deserialize(bytes)<span class="question-mark">?</span>)
     }
@@ -397,7 +399,7 @@
         </span>T: Serialize + Versioned,
     {
         <span class="attr">#[allow(clippy::let_unit_value)]
-        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER_MAJOR, VER_MINOR, T&gt;::VERSION_MISMATCH;
+        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER, T&gt;::VERSION_MISMATCH;
 
         <span class="kw">let </span><span class="kw-2">mut </span>vec = <span class="self">Self</span>::version().serialize();
         bincode::serialize_into(vec.by_ref(), value)<span class="question-mark">?</span>;
@@ -409,10 +411,10 @@
         </span>T: Deserialize&lt;<span class="lifetime">'a</span>&gt; + Versioned,
     {
         <span class="attr">#[allow(clippy::let_unit_value)]
-        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER_MAJOR, VER_MINOR, T&gt;::VERSION_MISMATCH;
+        </span><span class="kw">let _ </span>= VersionChecker::&lt;VER, T&gt;::VERSION_MISMATCH;
 
         <span class="kw">let </span>(ver, rest) = Version::deserialize(bytes)<span class="question-mark">?</span>;
-        <span class="kw">if </span>ver.major != VER_MAJOR || ver.minor != VER_MINOR {
+        <span class="kw">if </span>ver.major != VER::MAJOR || ver.minor != VER::MINOR {
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">anyhow!</span>(
                 <span class="string">"Version Mismatch! Expected {}, got {}"</span>,
                 ver,
@@ -427,17 +429,19 @@
 </span><span class="kw">mod </span>test {
     <span class="kw">use </span>serde::{Deserialize, Serialize};
 
-    <span class="kw">use crate</span>::{binary_serializer::BinarySerializer, version::Version};
+    <span class="kw">use crate</span>::{
+        binary_serializer::BinarySerializer,
+        version::{StaticVersion, Version},
+        versioned::Versioned,
+    };
 
     <span class="kw">use super</span>::{BincodeSerializer, VersionedBinarySerializer, VersionedBincodeSerializer};
 
     <span class="kw">mod </span>version_0_1 {
-        <span class="kw">use </span><span class="kw">crate</span>::versioned::Versioned;
-
         <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">1u16</span>&gt;;
-        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">1u16</span>&gt;;
+        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">1u16</span>&gt;&gt;;
+        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">1u16</span>&gt;&gt;;
 
         <span class="attr">#[derive(Serialize, Deserialize)]
         </span><span class="kw">pub struct </span>Thing {
@@ -457,19 +461,17 @@
     <span class="kw">mod </span>version_0_2 {
         <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">2u16</span>&gt;;
-        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">2u16</span>&gt;;
+        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">2u16</span>&gt;&gt;;
+        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">2u16</span>&gt;&gt;;
 
         <span class="kw">pub type </span>Thing = version_0_1::Thing;
     }
 
     <span class="kw">mod </span>version_0_3 {
-        <span class="kw">use </span><span class="kw">crate</span>::versioned::Versioned;
-
         <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">3u16</span>&gt;;
-        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;<span class="number">0u16</span>, <span class="number">3u16</span>&gt;;
+        <span class="kw">pub type </span>Serializer = BincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">3u16</span>&gt;&gt;;
+        <span class="kw">pub type </span>VSerializer = VersionedBincodeSerializer&lt;StaticVersion&lt;<span class="number">0u16</span>, <span class="number">3u16</span>&gt;&gt;;
 
         <span class="attr">#[derive(Serialize, Deserialize)]
         </span><span class="kw">pub struct </span>Thing {
