@@ -34,7 +34,7 @@ impl Version {
     }
 }
 
-pub trait StaticVersionType: Clone + Copy + Debug + private::Sealed {
+pub trait StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Sealed {
     const MAJOR: u16;
     const MINOR: u16;
 
