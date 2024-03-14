@@ -113,7 +113,7 @@
     }
 }
 
-<span class="kw">pub trait </span>StaticVersionType: Clone + Copy + Debug + private::Sealed {
+<span class="kw">pub trait </span>StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Sealed {
     <span class="kw">const </span>MAJOR: u16;
     <span class="kw">const </span>MINOR: u16;
 
