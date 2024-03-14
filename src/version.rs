@@ -44,10 +44,12 @@ pub trait StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Seale
             minor: Self::MINOR,
         }
     }
+
+    fn instance() -> Self;
 }
 
 #[derive(Clone, Copy, Display)]
-pub struct StaticVersion<const MAJOR: u16, const MINOR: u16>;
+pub struct StaticVersion<const MAJOR: u16, const MINOR: u16> {}
 
 impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJOR, MINOR> {
     const MAJOR: u16 = MAJOR;
@@ -58,6 +60,10 @@ impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJ
             major: Self::MAJOR,
             minor: Self::MINOR,
         }
+    }
+
+    fn instance() -> Self {
+        Self {}
     }
 }
 
