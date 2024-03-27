@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["versioned_binary_serialization"];
+window.ALL_CRATES = ["vbs"];
