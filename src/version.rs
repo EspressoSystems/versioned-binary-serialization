@@ -50,6 +50,7 @@ pub trait StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Seale
 }
 
 #[derive(Clone, Copy, Display)]
+#[display(fmt = "{MAJOR}.{MINOR}")]
 pub struct StaticVersion<const MAJOR: u16, const MINOR: u16> {}
 
 impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJOR, MINOR> {
@@ -91,5 +92,10 @@ mod test {
     #[test]
     fn test_version_display() {
         assert_eq!("1.2", Version { major: 1, minor: 2 }.to_string());
+    }
+
+    #[test]
+    fn test_static_version_display() {
+        assert_eq!("1.2", StaticVersion::<1, 2> {}.to_string());
     }
 }
