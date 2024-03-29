@@ -84,13 +84,31 @@
 <a href="#82" id="82">82</a>
 <a href="#83" id="83">83</a>
 <a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>anyhow::anyhow;
 <span class="kw">use </span>core::fmt::Debug;
-<span class="kw">use </span>displaydoc::Display;
+<span class="kw">use </span>derive_more::Display;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="attr">#[derive(Clone, Copy, Debug, Deserialize, Display, Eq, Hash, PartialEq, Serialize)]
 </span><span class="doccomment">/// Type for protocol version number
+</span><span class="attr">#[display(fmt = <span class="string">"{major}.{minor}"</span>)]
 </span><span class="kw">pub struct </span>Version {
     <span class="doccomment">/// major version number
     </span><span class="kw">pub </span>major: u16,
@@ -135,6 +153,7 @@
 }
 
 <span class="attr">#[derive(Clone, Copy, Display)]
+#[display(fmt = <span class="string">"{MAJOR}.{MINOR}"</span>)]
 </span><span class="kw">pub struct </span>StaticVersion&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt; {}
 
 <span class="kw">impl</span>&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt; StaticVersionType <span class="kw">for </span>StaticVersion&lt;MAJOR, MINOR&gt; {
@@ -167,5 +186,20 @@
 
     <span class="comment">// Implement for those same types, but no others.
     </span><span class="kw">impl</span>&lt;<span class="kw">const </span>MAJOR: u16, <span class="kw">const </span>MINOR: u16&gt; Sealed <span class="kw">for </span><span class="kw">super</span>::StaticVersion&lt;MAJOR, MINOR&gt; {}
+}
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>test {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_version_display() {
+        <span class="macro">assert_eq!</span>(<span class="string">"1.2"</span>, Version { major: <span class="number">1</span>, minor: <span class="number">2 </span>}.to_string());
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_static_version_display() {
+        <span class="macro">assert_eq!</span>(<span class="string">"1.2"</span>, StaticVersion::&lt;<span class="number">1</span>, <span class="number">2</span>&gt; {}.to_string());
+    }
 }
 </code></pre></div></section></main></body></html>
