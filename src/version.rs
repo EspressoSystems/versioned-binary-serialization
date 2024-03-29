@@ -1,10 +1,11 @@
 use anyhow::anyhow;
 use core::fmt::Debug;
-use displaydoc::Display;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Display, Eq, Hash, PartialEq, Serialize)]
 /// Type for protocol version number
+#[display(fmt = "{major}.{minor}")]
 pub struct Version {
     /// major version number
     pub major: u16,
@@ -49,6 +50,7 @@ pub trait StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Seale
 }
 
 #[derive(Clone, Copy, Display)]
+#[display(fmt = "{MAJOR}.{MINOR}")]
 pub struct StaticVersion<const MAJOR: u16, const MINOR: u16> {}
 
 impl<const MAJOR: u16, const MINOR: u16> StaticVersionType for StaticVersion<MAJOR, MINOR> {
@@ -81,4 +83,19 @@ mod private {
 
     // Implement for those same types, but no others.
     impl<const MAJOR: u16, const MINOR: u16> Sealed for super::StaticVersion<MAJOR, MINOR> {}
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_version_display() {
+        assert_eq!("1.2", Version { major: 1, minor: 2 }.to_string());
+    }
+
+    #[test]
+    fn test_static_version_display() {
+        assert_eq!("1.2", StaticVersion::<1, 2> {}.to_string());
+    }
 }
