@@ -12,10 +12,7 @@ pub struct BincodeSerializer<VER: StaticVersionType>(PhantomData<VER>);
 impl<VER: StaticVersionType> BinarySerializer for BincodeSerializer<VER> {
     const MAJOR: u16 = VER::MAJOR;
     const MINOR: u16 = VER::MINOR;
-    fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize,
-    {
+    fn serialize_no_version<T: ?Sized + Serialize>(value: &T) -> Result<Vec<u8>> {
         Ok(bincode::serialize(value)?)
     }
 
@@ -26,10 +23,7 @@ impl<VER: StaticVersionType> BinarySerializer for BincodeSerializer<VER> {
         Ok(bincode::deserialize(bytes)?)
     }
 
-    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize,
-    {
+    fn serialize<T: ?Sized + Serialize>(value: &T) -> Result<Vec<u8>> {
         let mut vec = Self::version().serialize();
         bincode::serialize_into(vec.by_ref(), value)?;
         Ok(vec)
@@ -80,17 +74,13 @@ pub trait VersionedBinarySerializer {
 
     // TODO: `Versioned` trait
 
-    fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize + Versioned;
+    fn serialize_no_version<T: ?Sized + Serialize + Versioned>(value: &T) -> Result<Vec<u8>>;
 
     fn deserialize_no_version<'a, T>(bytes: &'a [u8]) -> Result<T>
     where
         T: Deserialize<'a> + Versioned;
 
-    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize + Versioned;
+    fn serialize<T: ?Sized + Serialize + Versioned>(value: &T) -> Result<Vec<u8>>;
 
     fn deserialize<'a, T>(bytes: &'a [u8]) -> Result<T>
     where
@@ -103,10 +93,7 @@ impl<VER: StaticVersionType> VersionedBinarySerializer for VersionedBincodeSeria
     const MINOR: u16 = VER::MINOR;
     type StaticVersion = VER;
 
-    fn serialize_no_version<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize + Versioned,
-    {
+    fn serialize_no_version<T: ?Sized + Serialize + Versioned>(value: &T) -> Result<Vec<u8>> {
         #[allow(clippy::let_unit_value)]
         let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 
@@ -123,10 +110,7 @@ impl<VER: StaticVersionType> VersionedBinarySerializer for VersionedBincodeSeria
         Ok(bincode::deserialize(bytes)?)
     }
 
-    fn serialize<T: ?Sized>(value: &T) -> Result<Vec<u8>>
-    where
-        T: Serialize + Versioned,
-    {
+    fn serialize<T: ?Sized + Serialize + Versioned>(value: &T) -> Result<Vec<u8>> {
         #[allow(clippy::let_unit_value)]
         let _ = VersionChecker::<VER, T>::VERSION_MISMATCH;
 

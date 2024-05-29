@@ -3,7 +3,9 @@ use core::fmt::Debug;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Deserialize, Display, Eq, Hash, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Display, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+)]
 /// Type for protocol version number
 #[display(fmt = "{major}.{minor}")]
 pub struct Version {
@@ -88,6 +90,24 @@ mod private {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_compare_version() {
+        let v1 = Version { major: 1, minor: 3 };
+        let v2 = Version { major: 1, minor: 2 };
+
+        assert!(v1 > v2);
+
+        let v3 = Version { major: 2, minor: 3 };
+        let v4 = Version { major: 1, minor: 3 };
+
+        assert!(v3 > v4);
+
+        let v5 = Version { major: 2, minor: 2 };
+        let v6 = Version { major: 1, minor: 3 };
+
+        assert!(v5 > v6);
+    }
 
     #[test]
     fn test_version_display() {
