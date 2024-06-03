@@ -40,12 +40,13 @@ impl Version {
 pub trait StaticVersionType: Sync + Send + Clone + Copy + Debug + private::Sealed {
     const MAJOR: u16;
     const MINOR: u16;
+    const VERSION: Version = Version {
+        major: Self::MAJOR,
+        minor: Self::MINOR,
+    };
 
     fn version() -> Version {
-        Version {
-            major: Self::MAJOR,
-            minor: Self::MINOR,
-        }
+        Self::VERSION
     }
 
     fn instance() -> Self;
@@ -117,5 +118,17 @@ mod test {
     #[test]
     fn test_static_version_display() {
         assert_eq!("1.2", StaticVersion::<1, 2> {}.to_string());
+    }
+
+    #[test]
+    fn test_static_version_const() {
+        assert_eq!(
+            StaticVersion::<1, 2>::VERSION,
+            StaticVersion::<1, 2>::version()
+        );
+        assert_eq!(
+            Version { major: 1, minor: 2 },
+            StaticVersion::<1, 2>::version()
+        );
     }
 }
